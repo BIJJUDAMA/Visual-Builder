@@ -3,7 +3,7 @@ import { DndContext, useSensor, useSensors, PointerSensor } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core';
 import { v4 as uuidv4 } from 'uuid';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Share2, LogOut, Layout, Eye, Edit2, Trash2, ChevronLeft } from 'lucide-react';
+import { Share2, LogOut, Eye, Edit2, Trash2, ChevronLeft } from 'lucide-react';
 import { PaletteItem } from './PaletteItem';
 import { Canvas } from './Canvas';
 import { Inspector } from './Inspector';
@@ -40,16 +40,29 @@ export function Builder() {
     }, [user]);
 
     // Terminate Session (Admin Only)
+    // Terminate Session (Admin Only)
     const terminateSession = async () => {
         if (!sessionId || !user) return;
-        if (!confirm("Are you sure you want to terminate this session? It will be permanently deleted.")) return;
+        if (!confirm("Are you sure you want to terminate this session? It will be permanently deleted for all users.")) return;
 
+        // 1. Notify participants to leave
+        if (sendMutation) { // Ensure hook is ready
+            // We need to use 'as any' because Typescript might not pick up the new type immediately without restart
+            // or we just cast it to satisfy the compiler if it's strictly typed
+            await sendMutation({
+                type: 'TERMINATE_SESSION' as any,
+                data: null,
+                actorId: MY_ID
+            } as MutationPayload);
+        }
+
+        // 2. Delete the session
         const { error } = await supabase.from('page_sessions').delete().eq('id', sessionId);
         if (error) {
             alert("Failed to terminate session.");
             console.error(error);
         } else {
-            navigate('/');
+            navigate('/dashboard'); // Admin goes to dashboard
         }
     };
 
@@ -100,11 +113,15 @@ export function Builder() {
                     );
                 case 'DELETE_COMPONENT':
                     return prev.filter((c) => c.id !== payload.id);
+                case 'TERMINATE_SESSION' as any:
+                    alert("The host has terminated this session.");
+                    navigate('/'); // Participant goes to home
+                    return prev;
                 default:
                     return prev;
             }
         });
-    }, []);
+    }, [navigate]);
 
     const { sendMutation } = useRealtime(sessionId || '', applyRemoteMutation);
 
@@ -125,6 +142,20 @@ export function Builder() {
                 content: `New ${type}`,
                 styles: { padding: '20px', marginTop: '10px', backgroundColor: '#ffffff' }
             };
+
+            // Custom defaults for Club Components
+            if (active.data.current?.type === 'Hero') {
+                newComponent.styles = { width: '100%', marginBottom: '20px' };
+                newComponent.content = "Build Something Epic|Open Source is the future.";
+            }
+            if (active.data.current?.type === 'MemberCard') {
+                newComponent.styles = { display: 'inline-block', margin: '10px' };
+                newComponent.content = "Member Name|Core Contributor";
+            }
+            if (active.data.current?.type === 'EventCard') {
+                newComponent.styles = { width: '100%', maxWidth: '400px', margin: '10px auto' };
+                newComponent.content = "Hackathon 2024|Join us for 48 hours of coding.";
+            }
 
             setLayout((prev) => [...prev, newComponent]);
             setSelectedId(newComponent.id);
@@ -148,46 +179,49 @@ export function Builder() {
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
-    if (isLoading) return <div className="h-screen w-full flex items-center justify-center font-mono bg-slate-50 text-slate-500">Loading Session...</div>;
+    if (isLoading) return <div className="h-screen w-full flex items-center justify-center font-mono bg-black text-neutral-600">Loading...</div>;
 
     const selectedComponent = layout.find((c) => c.id === selectedId) || null;
 
     return (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
-            <div className="flex h-screen w-full bg-slate-100 overflow-hidden">
+            <div className="flex h-screen w-full bg-black overflow-hidden">
 
                 {/* Palette */}
-                <aside className={`w-64 bg-white border-r border-slate-200 p-4 flex flex-col transition-all duration-300 ${!canEdit ? 'hidden' : ''}`}>
-                    <div className="flex justify-between items-center mb-8">
-                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
-                            <Layout size={18} />
+                <aside className={`w-56 bg-neutral-950 border-r border-neutral-900 p-4 flex flex-col transition-all duration-300 ${!canEdit ? 'hidden' : ''}`}>
+                    <div className="flex justify-between items-center mb-6">
+                        <div className="w-7 h-7 rounded-lg overflow-hidden border border-neutral-800">
+                            <img src="/InitClub.jpeg" alt="Init Club" className="w-full h-full object-contain" />
                         </div>
 
-                        {/* Sign Out */}
                         {user && (
-                            <button onClick={() => { signOut(); navigate('/login'); }} title="Sign Out" className="text-slate-400 hover:text-red-500">
+                            <button onClick={() => { signOut(); navigate('/login'); }} title="Sign Out" className="text-neutral-600 hover:text-red-400 transition-colors">
                                 <LogOut size={14} />
                             </button>
                         )}
                     </div>
 
-                    <div className="space-y-2 flex-1">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase">Elements</p>
+                    <div className="space-y-1 flex-1 overflow-y-auto">
+                        <p className="text-[10px] font-medium text-neutral-600 uppercase tracking-wide mb-2">Elements</p>
                         <PaletteItem type="Section" />
                         <PaletteItem type="Text" />
                         <PaletteItem type="Button" />
                         <PaletteItem type="Image" />
+                        <div className="h-px bg-neutral-900 my-3"></div>
+                        <p className="text-[10px] font-medium text-neutral-600 uppercase tracking-wide mb-2">Templates</p>
+                        <PaletteItem type="Hero" />
+                        <PaletteItem type="MemberCard" />
+                        <PaletteItem type="EventCard" />
                     </div>
 
-                    {/* Share Button */}
                     {user && (
-                        <div className="pt-4 mt-4 border-t border-slate-100">
+                        <div className="pt-4 mt-4 border-t border-neutral-900">
                             <button
                                 onClick={() => setIsShareModalOpen(true)}
-                                className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white py-2 rounded text-xs font-bold uppercase tracking-wide hover:bg-slate-800 transition-colors"
+                                className="w-full flex items-center justify-center gap-2 bg-white text-black py-2 rounded-lg text-xs font-semibold hover:bg-neutral-200 transition-colors"
                             >
-                                <Share2 size={14} />
-                                Share Session
+                                <Share2 size={12} />
+                                Share
                             </button>
                         </div>
                     )}
@@ -196,38 +230,35 @@ export function Builder() {
                 <div className="flex-1 flex flex-col relative overflow-hidden">
                     {/* Admin Toolbar */}
                     {user && (
-                        <div className="bg-slate-900 text-white px-4 py-2 flex items-center justify-between shadow-md z-10">
+                        <div className="bg-neutral-950 border-b border-neutral-900 text-white px-4 py-2 flex items-center justify-between z-10">
                             <div className="flex items-center gap-3">
                                 <button
-                                    onClick={() => navigate('/')}
-                                    className="flex items-center gap-2 text-xs font-bold hover:text-blue-300 transition-colors"
+                                    onClick={() => navigate('/dashboard')}
+                                    className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-white transition-colors"
                                 >
-                                    <ChevronLeft size={14} /> Dashboard
+                                    <ChevronLeft size={14} /> Back
                                 </button>
-                                <div className="h-4 w-px bg-slate-700 mx-2"></div>
-                                <span className="text-xs font-mono text-slate-400">Admin Controls</span>
                             </div>
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => setCanEdit(!canEdit)}
-                                    className={`flex items-center gap-2 px-3 py-1 rounded text-xs font-bold transition-colors ${canEdit ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-700 hover:bg-slate-600'}`}
+                                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${canEdit ? 'bg-neutral-800 text-white' : 'bg-neutral-900 text-neutral-500'}`}
                                 >
                                     {canEdit ? <Edit2 size={12} /> : <Eye size={12} />}
-                                    {canEdit ? 'Editing Enabled' : 'View Only Mode'}
+                                    {canEdit ? 'Edit' : 'View'}
                                 </button>
                                 <button
                                     onClick={terminateSession}
-                                    className="flex items-center gap-2 px-3 py-1 bg-red-900/50 text-red-200 hover:bg-red-900 hover:text-white rounded text-xs font-bold transition-all border border-red-900"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 text-red-400 hover:bg-red-900/20 rounded-lg text-xs font-medium transition-all"
                                 >
-                                    <Trash2 size={12} /> Terminate
+                                    <Trash2 size={12} /> Delete
                                 </button>
                             </div>
                         </div>
                     )}
 
                     {/* Canvas */}
-                    <main className="flex-1 overflow-y-auto relative bg-slate-100 p-8">
-                        {/* Centered logic handled by Canvas component via props mostly, keeping it simple here */}
+                    <main className="flex-1 overflow-y-auto relative bg-black p-6">
                         <div className="min-h-full flex justify-center">
                             <Canvas
                                 components={layout}
@@ -239,7 +270,7 @@ export function Builder() {
                 </div>
 
                 {/* Inspector */}
-                <aside className="w-80 bg-white border-l border-slate-200">
+                <aside className="w-72 bg-neutral-950 border-l border-neutral-900">
                     <Inspector
                         selectedComponent={selectedComponent}
                         updateStyles={updateStyles}

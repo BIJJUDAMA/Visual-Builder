@@ -1,4 +1,4 @@
-export type ComponentType = 'Text' | 'Button' | 'Image' | 'Section';
+export type ComponentType = 'Text' | 'Button' | 'Image' | 'Section' | 'Hero' | 'MemberCard' | 'EventCard';
 
 export interface UIComponent {
     id: string;
@@ -22,6 +22,8 @@ export interface UIComponent {
         flexDirection?: 'row' | 'column';
         gap?: string;
         border?: string;
+        margin?: string;
+        maxWidth?: string;
     };
 }
 

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { Plus, Layout, LogOut, ChevronRight } from 'lucide-react';
+import { Plus, Folder, LogOut, ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -22,7 +23,6 @@ export function Dashboard() {
         if (!user) return;
 
         async function fetchSessions() {
-            // Requires 'owner_id' column in 'page_sessions'
             const { data, error } = await supabase
                 .from('page_sessions')
                 .select('*')
@@ -56,7 +56,7 @@ export function Dashboard() {
 
         if (error) {
             console.error('Error creating session:', error);
-            alert('Failed to create session. Please check database permissions.');
+            alert('Failed to create session.');
             setCreating(false);
         } else {
             navigate(`/s/${newId}`);
@@ -64,81 +64,97 @@ export function Dashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+        <div className="min-h-screen bg-black font-sans text-white">
+            {/* Subtle grid background */}
+            <div className="fixed inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px] pointer-events-none"></div>
 
-            <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-                <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-                        B
+            <header className="relative z-10 border-b border-neutral-900 px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg overflow-hidden border border-neutral-800">
+                        <img src="/InitClub.jpeg" alt="Init Club" className="w-full h-full object-contain" />
                     </div>
+                    <span className="text-sm font-semibold text-neutral-400">Dashboard</span>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <span className="text-xs font-mono text-slate-400 hidden sm:block">
+                    <span className="text-xs font-mono text-neutral-600 hidden sm:block">
                         {user?.email}
                     </span>
                     <button
                         onClick={() => signOut()}
-                        className="text-slate-400 hover:text-red-500 transition-colors"
+                        className="text-neutral-500 hover:text-red-400 transition-colors"
                         title="Sign Out"
                     >
-                        <LogOut size={18} />
+                        <LogOut size={16} />
                     </button>
                 </div>
             </header>
 
-            <main className="max-w-4xl mx-auto p-6 sm:p-12">
-                <div className="flex items-center justify-between mb-8">
-                    <h1 className="text-2xl font-bold">Your Sessions</h1>
-                    <button
+            <main className="relative z-10 max-w-3xl mx-auto p-6 sm:p-12">
+                <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="flex items-center justify-between mb-8"
+                >
+                    <h1 className="text-xl font-semibold text-white">Your Projects</h1>
+                    <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
                         onClick={createSession}
                         disabled={creating}
-                        className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="bg-white text-black px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-semibold transition-all disabled:opacity-50"
                     >
-                        <Plus size={16} />
-                        {creating ? 'Creating...' : 'New Session'}
-                    </button>
-                </div>
+                        <Plus size={14} />
+                        {creating ? 'Creating...' : 'New Project'}
+                    </motion.button>
+                </motion.div>
 
                 {loading ? (
-                    <div className="text-center py-20 text-slate-400">Loading sessions...</div>
+                    <div className="text-center py-20 text-neutral-600 font-mono text-sm">Loading...</div>
                 ) : sessions.length === 0 ? (
-                    <div className="text-center py-20 border-2 border-dashed border-slate-200 rounded-xl bg-white">
-                        <div className="mb-4 inline-flex items-center justify-center w-12 h-12 rounded-full bg-slate-100 text-slate-400">
-                            <Layout size={24} />
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="text-center py-20 border border-dashed border-neutral-800 rounded-xl"
+                    >
+                        <div className="mb-4 inline-flex items-center justify-center w-12 h-12 rounded-full bg-neutral-900 text-neutral-600">
+                            <Folder size={24} />
                         </div>
-                        <h3 className="text-lg font-medium text-slate-800 mb-1">No sessions yet</h3>
-                        <p className="text-slate-500 mb-6">Create your first layout to get started.</p>
+                        <h3 className="text-base font-medium text-neutral-400 mb-1">No projects yet</h3>
+                        <p className="text-neutral-600 text-sm mb-6">Create your first project to get started.</p>
                         <button
                             onClick={createSession}
                             disabled={creating}
-                            className="text-blue-600 font-semibold hover:underline"
+                            className="text-white font-semibold hover:underline text-sm"
                         >
-                            Create a Project
+                            Create a Project →
                         </button>
-                    </div>
+                    </motion.div>
                 ) : (
-                    <div className="grid gap-4">
-                        {sessions.map((session) => (
-                            <div
+                    <div className="grid gap-3">
+                        {sessions.map((session, index) => (
+                            <motion.div
                                 key={session.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.3, delay: index * 0.05 }}
                                 onClick={() => navigate(`/s/${session.id}`)}
-                                className="group bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-300 hover:shadow-md transition-all cursor-pointer flex items-center justify-between"
+                                className="group bg-neutral-950 p-4 rounded-lg border border-neutral-900 hover:border-neutral-700 transition-all cursor-pointer flex items-center justify-between"
                             >
                                 <div className="flex items-center gap-4">
-                                    <div className="w-10 h-10 bg-blue-50 text-blue-500 rounded-lg flex items-center justify-center">
-                                        <Layout size={20} />
+                                    <div className="w-9 h-9 bg-neutral-900 text-neutral-500 rounded-lg flex items-center justify-center">
+                                        <Folder size={18} />
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-slate-800">{session.name || 'Untitled Project'}</p>
-                                        <p className="text-xs text-slate-400 font-mono">ID: {session.id.slice(0, 8)}...</p>
+                                        <p className="font-medium text-neutral-200 text-sm">{session.name || 'Untitled Project'}</p>
+                                        <p className="text-xs text-neutral-600 font-mono">{session.id.slice(0, 8)}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center text-slate-300 group-hover:text-blue-500 transition-colors">
-                                    <span className="text-xs mr-2 opacity-0 group-hover:opacity-100 transition-opacity">Open Editor</span>
-                                    <ChevronRight size={18} />
+                                <div className="flex items-center text-neutral-600 group-hover:text-white transition-colors">
+                                    <ChevronRight size={16} />
                                 </div>
-                            </div>
+                            </motion.div>
                         ))}
                     </div>
                 )}

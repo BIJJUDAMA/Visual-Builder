@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Login } from './components/Login';
 import { Builder } from './components/Builder';
 import { Dashboard } from './components/Dashboard';
+import { Home } from './components/Home';
 import { useAuth } from './contexts/AuthContext';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -16,14 +17,16 @@ export default function App() {
         <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/s/:sessionId" element={<Builder />} />
+            <Route path="/s/:sessionId" element={<Builder />} />
             <Route
-                path="/"
+                path="/dashboard"
                 element={
                     <ProtectedRoute>
                         <Dashboard />
                     </ProtectedRoute>
                 }
             />
+            <Route path="/" element={<Home />} />
             <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
     );

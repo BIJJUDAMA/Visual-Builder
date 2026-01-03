@@ -9,7 +9,6 @@ interface CanvasProps {
 }
 
 export function Canvas({ components, selectedId, onSelect }: CanvasProps) {
-    // This hook registers this div as a valid drop target for dnd-kit
     const { setNodeRef, isOver } = useDroppable({
         id: 'main-canvas',
     });
@@ -17,27 +16,26 @@ export function Canvas({ components, selectedId, onSelect }: CanvasProps) {
     return (
         <div
             ref={setNodeRef}
-            className={`min-h-full p-12 flex flex-col items-center transition-colors duration-200 ${isOver ? 'bg-blue-50/50' : 'bg-slate-100'
-                }`}
-            onClick={() => onSelect('')} // Deselects when clicking the background
+            className={`min-h-full p-8 flex flex-col items-center transition-colors duration-200 ${isOver ? 'bg-neutral-900/50' : 'bg-black'}`}
+            onClick={() => onSelect('')}
         >
-            {/* The "Artboard" or Page Page Sheet */}
+            {/* Artboard */}
             <div
-                className="w-full max-w-4xl min-h-[842px] bg-white shadow-2xl rounded-sm p-8 ring-1 ring-slate-200 transition-all flex flex-col gap-2"
+                className="w-full max-w-3xl min-h-[800px] bg-neutral-950 rounded-lg p-6 ring-1 ring-neutral-900 transition-all flex flex-col gap-2"
             >
-                {/* Empty State UI */}
+                {/* Empty State */}
                 {components.length === 0 && (
-                    <div className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-lg text-slate-400 py-20">
+                    <div className="flex-1 flex flex-col items-center justify-center border border-dashed border-neutral-800 rounded-lg text-neutral-600 py-20">
                         <svg
-                            className="w-12 h-12 mb-4 opacity-20"
+                            className="w-10 h-10 mb-4 opacity-30"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
                         >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 4v16m8-8H4" />
                         </svg>
-                        <p className="font-medium">Drop components here</p>
-                        <p className="text-xs opacity-60">Select from the left palette</p>
+                        <p className="font-medium text-sm">Drop components here</p>
+                        <p className="text-xs opacity-60 mt-1">Drag from the left panel</p>
                     </div>
                 )}
 
@@ -51,10 +49,10 @@ export function Canvas({ components, selectedId, onSelect }: CanvasProps) {
                     />
                 ))}
 
-                {/* Indicator when dragging over */}
+                {/* Drop Indicator */}
                 {isOver && (
-                    <div className="border-2 border-blue-400 border-dashed rounded-lg h-20 animate-pulse bg-blue-50 flex items-center justify-center">
-                        <span className="text-blue-500 text-sm font-bold uppercase tracking-widest">Release to Drop</span>
+                    <div className="border border-neutral-600 border-dashed rounded-lg h-16 flex items-center justify-center">
+                        <span className="text-neutral-500 text-xs font-medium">Release to drop</span>
                     </div>
                 )}
             </div>

@@ -6,7 +6,8 @@ export type MutationType =
     | 'UPDATE_STYLE'
     | 'UPDATE_CONTENT'
     | 'DELETE_COMPONENT'
-    | 'RESET_LAYOUT';
+    | 'RESET_LAYOUT'
+    | 'TERMINATE_SESSION';
 
 
 export interface MutationPayload {

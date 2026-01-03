@@ -3,7 +3,7 @@ import { DndContext, useSensor, useSensors, PointerSensor } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core';
 import { v4 as uuidv4 } from 'uuid';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Share2, LogOut } from 'lucide-react';
+import { Share2, LogOut, Layout, Eye, Edit2, Trash2, ChevronLeft } from 'lucide-react';
 
 import { PaletteItem } from './PaletteItem';
 import { Canvas } from './Canvas';
@@ -27,11 +27,36 @@ export function Builder() {
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+    const [canEdit, setCanEdit] = useState(true);
+
+
+    useEffect(() => {
+        if (user) {
+            // Admin: Default to edit mode, but can toggle
+            setCanEdit(true);
+        } else {
+            // Participant: Always can edit
+            setCanEdit(true);
+        }
+    }, [user]);
+
+    // Terminate Session (Admin Only)
+    const terminateSession = async () => {
+        if (!sessionId || !user) return;
+        if (!confirm("Are you sure you want to terminate this session? It will be permanently deleted.")) return;
+
+        const { error } = await supabase.from('page_sessions').delete().eq('id', sessionId);
+        if (error) {
+            alert("Failed to terminate session.");
+            console.error(error);
+        } else {
+            navigate('/');
+        }
+    };
 
     // Validate Session ID
     useEffect(() => {
         if (!sessionId) {
-            // Should not happen due to routing, but safe fallback
             navigate('/login');
         }
     }, [sessionId, navigate]);
@@ -133,8 +158,9 @@ export function Builder() {
             <div className="flex h-screen w-full bg-slate-100 overflow-hidden">
 
                 {/* Palette */}
-                <aside className="w-64 bg-white border-r border-slate-200 p-4 flex flex-col">
+                <aside className={`w-64 bg-white border-r border-slate-200 p-4 flex flex-col transition-all duration-300 ${!canEdit ? 'hidden' : ''}`}>
                     <div className="flex justify-between items-center mb-8">
+                        <h1 className="text-xs font-black uppercase tracking-widest text-blue-600">Builder Pro</h1>
 
                         {/* Sign Out */}
                         {user && (
@@ -166,14 +192,50 @@ export function Builder() {
                     )}
                 </aside>
 
-                {/* Canvas */}
-                <main className="flex-1 overflow-y-auto relative bg-slate-100">
-                    <Canvas
-                        components={layout}
-                        selectedId={selectedId}
-                        onSelect={setSelectedId}
-                    />
-                </main>
+                <div className="flex-1 flex flex-col relative overflow-hidden">
+                    {/* Admin Toolbar */}
+                    {user && (
+                        <div className="bg-slate-900 text-white px-4 py-2 flex items-center justify-between shadow-md z-10">
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => navigate('/')}
+                                    className="flex items-center gap-2 text-xs font-bold hover:text-blue-300 transition-colors"
+                                >
+                                    <ChevronLeft size={14} /> Dashboard
+                                </button>
+                                <div className="h-4 w-px bg-slate-700 mx-2"></div>
+                                <span className="text-xs font-mono text-slate-400">Admin Controls</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setCanEdit(!canEdit)}
+                                    className={`flex items-center gap-2 px-3 py-1 rounded text-xs font-bold transition-colors ${canEdit ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-700 hover:bg-slate-600'}`}
+                                >
+                                    {canEdit ? <Edit2 size={12} /> : <Eye size={12} />}
+                                    {canEdit ? 'Editing Enabled' : 'View Only Mode'}
+                                </button>
+                                <button
+                                    onClick={terminateSession}
+                                    className="flex items-center gap-2 px-3 py-1 bg-red-900/50 text-red-200 hover:bg-red-900 hover:text-white rounded text-xs font-bold transition-all border border-red-900"
+                                >
+                                    <Trash2 size={12} /> Terminate
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Canvas */}
+                    <main className="flex-1 overflow-y-auto relative bg-slate-100 p-8">
+                        {/* Centered logic handled by Canvas component via props mostly, keeping it simple here */}
+                        <div className="min-h-full flex justify-center">
+                            <Canvas
+                                components={layout}
+                                selectedId={selectedId}
+                                onSelect={setSelectedId}
+                            />
+                        </div>
+                    </main>
+                </div>
 
                 {/* Inspector */}
                 <aside className="w-80 bg-white border-l border-slate-200">
@@ -181,6 +243,7 @@ export function Builder() {
                         selectedComponent={selectedComponent}
                         updateStyles={updateStyles}
                         updateContent={updateContent}
+                        readOnly={!canEdit}
                     />
                 </aside>
 

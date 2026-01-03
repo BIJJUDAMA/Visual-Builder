@@ -4,9 +4,10 @@ interface Props {
     selectedComponent: UIComponent | null;
     updateStyles: (id: string, newStyles: any) => void;
     updateContent: (id: string, content: string) => void;
+    readOnly?: boolean;
 }
 
-export function Inspector({ selectedComponent, updateStyles, updateContent }: Props) {
+export function Inspector({ selectedComponent, updateStyles, updateContent, readOnly }: Props) {
     if (!selectedComponent) {
         return (
             <div className="p-8 text-center text-slate-400">
@@ -29,7 +30,8 @@ export function Inspector({ selectedComponent, updateStyles, updateContent }: Pr
                     type="text"
                     value={selectedComponent.content || ''}
                     onChange={(e) => updateContent(selectedComponent.id, e.target.value)}
-                    className="w-full p-2 border border-slate-200 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    disabled={readOnly}
+                    className="w-full p-2 border border-slate-200 rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50 disabled:text-slate-400"
                 />
             </div>
 
@@ -41,7 +43,8 @@ export function Inspector({ selectedComponent, updateStyles, updateContent }: Pr
                         type="color"
                         value={selectedComponent.styles.backgroundColor || '#ffffff'}
                         onChange={(e) => updateStyles(selectedComponent.id, { backgroundColor: e.target.value })}
-                        className="w-full h-8 cursor-pointer rounded overflow-hidden"
+                        className="w-full h-8 cursor-pointer rounded overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled={readOnly}
                     />
                 </div>
 
@@ -52,7 +55,8 @@ export function Inspector({ selectedComponent, updateStyles, updateContent }: Pr
                         placeholder="e.g. 20px"
                         value={selectedComponent.styles.padding || ''}
                         onChange={(e) => updateStyles(selectedComponent.id, { padding: e.target.value })}
-                        className="w-full p-2 border border-slate-200 rounded text-sm"
+                        className="w-full p-2 border border-slate-200 rounded text-sm disabled:bg-slate-50 disabled:text-slate-400"
+                        disabled={readOnly}
                     />
                 </div>
             </div>

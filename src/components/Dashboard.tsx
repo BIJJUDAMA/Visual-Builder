@@ -40,13 +40,18 @@ export function Dashboard() {
 
     const createSession = async () => {
         if (!user) return;
+
+        const name = prompt("Enter a name for your session:", "Untitled Project");
+        if (!name) return;
+
         setCreating(true);
 
         const newId = uuidv4();
         const { error } = await supabase.from('page_sessions').insert({
             id: newId,
             owner_id: user.id,
-            layout: [], // Start empty
+            name: name,
+            layout: [],
         });
 
         if (error) {
@@ -125,7 +130,7 @@ export function Dashboard() {
                                         <Layout size={20} />
                                     </div>
                                     <div>
-                                        <p className="font-semibold text-slate-800">Untitled Session</p>
+                                        <p className="font-semibold text-slate-800">{session.name || 'Untitled Project'}</p>
                                         <p className="text-xs text-slate-400 font-mono">ID: {session.id.slice(0, 8)}...</p>
                                     </div>
                                 </div>

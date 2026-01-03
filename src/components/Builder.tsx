@@ -3,8 +3,7 @@ import { DndContext, useSensor, useSensors, PointerSensor } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core';
 import { v4 as uuidv4 } from 'uuid';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Share2, LogOut, Eye, Edit2, Trash2, ChevronLeft } from 'lucide-react';
-
+import { Share2, LogOut, Layout, Eye, Edit2, Trash2, ChevronLeft } from 'lucide-react';
 import { PaletteItem } from './PaletteItem';
 import { Canvas } from './Canvas';
 import { Inspector } from './Inspector';
@@ -160,7 +159,9 @@ export function Builder() {
                 {/* Palette */}
                 <aside className={`w-64 bg-white border-r border-slate-200 p-4 flex flex-col transition-all duration-300 ${!canEdit ? 'hidden' : ''}`}>
                     <div className="flex justify-between items-center mb-8">
-                        <h1 className="text-xs font-black uppercase tracking-widest text-blue-600">Builder Pro</h1>
+                        <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white">
+                            <Layout size={18} />
+                        </div>
 
                         {/* Sign Out */}
                         {user && (

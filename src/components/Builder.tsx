@@ -3,7 +3,7 @@ import { DndContext, useSensor, useSensors, PointerSensor } from '@dnd-kit/core'
 import type { DragEndEvent } from '@dnd-kit/core';
 import { v4 as uuidv4 } from 'uuid';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Share2, LogOut, Layout, Eye, Edit2, Trash2, ChevronLeft } from 'lucide-react';
+import { Share2, LogOut, Eye, Edit2, Trash2, ChevronLeft } from 'lucide-react';
 
 import { PaletteItem } from './PaletteItem';
 import { Canvas } from './Canvas';

@@ -52,7 +52,7 @@ export function Home() {
                     )}
                 </div>
 
-                <div className="mt-16 flex items-center gap-2 text-neutral-600 text-xs font-mono">
+                <div className="mt-16 flex items-center justify-center gap-2 text-neutral-600 text-xs font-mono">
                     <Github size={14} />
                     <span>Open Source Contribution</span>
                 </div>

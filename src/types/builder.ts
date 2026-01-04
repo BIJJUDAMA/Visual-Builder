@@ -1,10 +1,19 @@
-export type ComponentType = 'Text' | 'Button' | 'Image' | 'Section' | 'Hero' | 'MemberCard' | 'EventCard';
+export type ComponentType =
+    | 'Text'
+    | 'Button'
+    | 'Image'
+    | 'Section'
+    | 'Navbar'
+    | 'Footer'
+    | 'Card';
 
 export interface UIComponent {
     id: string;
     type: ComponentType;
+    parentId?: string;  // Reference to parent Section for containment
     content?: string;
-    // We keep styles flexible but define common properties for Autocomplete
+    imageSrc?: string; // For Image components - URL to display
+    linkUrl?: string;  // For Button/Link components - where they navigate
     styles: {
         width?: string;
         height?: string;
@@ -24,6 +33,10 @@ export interface UIComponent {
         border?: string;
         margin?: string;
         maxWidth?: string;
+        // Free positioning
+        x?: number;
+        y?: number;
+        zIndex?: number;
     };
 }
 

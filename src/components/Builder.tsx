@@ -6,14 +6,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Share2, LogOut, Eye, Edit2, Trash2, ChevronLeft } from 'lucide-react';
 import { PaletteItem } from './PaletteItem';
 import { Canvas } from './Canvas';
-import { Inspector } from './Inspector';
 import { ShareModal } from './ShareModal';
+import { LayerPanel } from './LayerPanel';
+
 
 import type { UIComponent } from '../types/builder';
 import type { MutationPayload } from '../types/supabase';
 import { useRealtime } from '../hooks/useRealtime';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from './Toast';
+import { useModal } from './Modal';
 
 const MY_ID = uuidv4(); // Unique ID for this browser tab instance
 
@@ -21,6 +24,8 @@ export function Builder() {
     const { sessionId } = useParams<{ sessionId: string }>();
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
+    const { showToast } = useToast();
+    const { showConfirm } = useModal();
 
     const [layout, setLayout] = useState<UIComponent[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -43,27 +48,30 @@ export function Builder() {
     // Terminate Session (Admin Only)
     const terminateSession = async () => {
         if (!sessionId || !user) return;
-        if (!confirm("Are you sure you want to terminate this session? It will be permanently deleted for all users.")) return;
 
-        // 1. Notify participants to leave
-        if (sendMutation) { // Ensure hook is ready
-            // We need to use 'as any' because Typescript might not pick up the new type immediately without restart
-            // or we just cast it to satisfy the compiler if it's strictly typed
-            await sendMutation({
-                type: 'TERMINATE_SESSION' as any,
-                data: null,
-                actorId: MY_ID
-            } as MutationPayload);
-        }
+        showConfirm(
+            'Are you sure you want to terminate this session? It will be permanently deleted for all users.',
+            async () => {
+                // 1. Notify participants to leave
+                if (sendMutation) {
+                    await sendMutation({
+                        type: 'TERMINATE_SESSION' as any,
+                        data: null,
+                        actorId: MY_ID
+                    } as MutationPayload);
+                }
 
-        // 2. Delete the session
-        const { error } = await supabase.from('page_sessions').delete().eq('id', sessionId);
-        if (error) {
-            alert("Failed to terminate session.");
-            console.error(error);
-        } else {
-            navigate('/dashboard'); // Admin goes to dashboard
-        }
+                // 2. Delete the session
+                const { error } = await supabase.from('page_sessions').delete().eq('id', sessionId);
+                if (error) {
+                    showToast('Failed to terminate session.', 'error');
+                    console.error(error);
+                } else {
+                    navigate('/dashboard');
+                }
+            },
+            'Terminate Session'
+        );
     };
 
     // Validate Session ID
@@ -114,7 +122,7 @@ export function Builder() {
                 case 'DELETE_COMPONENT':
                     return prev.filter((c) => c.id !== payload.id);
                 case 'TERMINATE_SESSION' as any:
-                    alert("The host has terminated this session.");
+                    showToast('The host has terminated this session.', 'warning');
                     navigate('/'); // Participant goes to home
                     return prev;
                 default:
@@ -136,25 +144,65 @@ export function Builder() {
         const { active, over } = event;
         if (over && over.id === 'main-canvas') {
             const type = active.data.current?.type;
+
+            // Check if element type
+            const isElementItem = ['Text', 'Image', 'Button', 'Card'].includes(type);
+
             const newComponent: UIComponent = {
                 id: `node-${uuidv4().slice(0, 8)}`,
                 type,
                 content: `New ${type}`,
-                styles: { padding: '20px', marginTop: '10px', backgroundColor: '#ffffff' }
+                styles: {}
             };
 
-            // Custom defaults for Club Components
-            if (active.data.current?.type === 'Hero') {
-                newComponent.styles = { width: '100%', marginBottom: '20px' };
-                newComponent.content = "Build Something Epic|Open Source is the future.";
+            // LAYOUT ITEMS: Stacked, full-width, not free-move
+            if (type === 'Navbar') {
+                newComponent.styles = { width: '100%', height: '60px', padding: '16px 24px', backgroundColor: '#0a0a0a' };
+                newComponent.content = "Init Club|Home,About,Projects,Contact|Sign Up";
             }
-            if (active.data.current?.type === 'MemberCard') {
-                newComponent.styles = { display: 'inline-block', margin: '10px' };
-                newComponent.content = "Member Name|Core Contributor";
+            if (type === 'Footer') {
+                newComponent.styles = { width: '100%', height: '80px', padding: '24px', backgroundColor: '#0a0a0a' };
+                newComponent.content = "© 2024 Init Club. Open source forever.";
             }
-            if (active.data.current?.type === 'EventCard') {
-                newComponent.styles = { width: '100%', maxWidth: '400px', margin: '10px auto' };
-                newComponent.content = "Hackathon 2024|Join us for 48 hours of coding.";
+            if (type === 'Section') {
+                newComponent.styles = { width: '100%', height: '300px', backgroundColor: 'rgba(255,255,255,0.03)' };
+                newComponent.content = "Section";
+            }
+
+            // ELEMENT ITEMS: Free-move inside sections
+            if (isElementItem) {
+                // Find first section to assign as parent
+                const sections = layout.filter(c => c.type === 'Section');
+                if (sections.length === 0) {
+                    showToast('Add a Section first, then add elements inside it.', 'warning');
+                    return;
+                }
+
+                const maxZ = Math.max(1, ...layout.map(c => c.styles.zIndex || 1));
+                const baseX = 50 + (layout.filter(c => c.parentId === sections[0].id).length * 20) % 200;
+                const baseY = 50 + (layout.filter(c => c.parentId === sections[0].id).length * 20) % 200;
+
+                newComponent.parentId = sections[0].id;
+                newComponent.styles = { x: baseX, y: baseY, zIndex: maxZ + 1, backgroundColor: '#171717' };
+            }
+
+            if (type === 'Card') {
+                newComponent.styles = { ...newComponent.styles, width: '280px', height: '180px', padding: '20px', backgroundColor: '#171717', borderRadius: '12px' };
+                newComponent.content = "Card Title|Card description goes here.|Learn More";
+            }
+            if (type === 'Text') {
+                newComponent.styles = { ...newComponent.styles, width: '200px', height: '40px', padding: '8px', color: '#ffffff', backgroundColor: 'transparent' };
+                newComponent.content = "Text content";
+            }
+            if (type === 'Image') {
+                newComponent.styles = { ...newComponent.styles, width: '200px', height: '150px' };
+                newComponent.imageSrc = '';
+                newComponent.content = '';
+            }
+            if (type === 'Button') {
+                newComponent.styles = { ...newComponent.styles, width: '120px', height: '44px', padding: '10px 20px', backgroundColor: '#ffffff', borderRadius: '8px' };
+                newComponent.content = 'Button';
+                newComponent.linkUrl = '';
             }
 
             setLayout((prev) => [...prev, newComponent]);
@@ -177,11 +225,49 @@ export function Builder() {
         pushMutation({ type: 'UPDATE_CONTENT', id, data: content });
     };
 
+    const updateImageSrc = (id: string, imageSrc: string) => {
+        setLayout((prev) =>
+            prev.map((c) => (c.id === id ? { ...c, imageSrc } : c))
+        );
+        pushMutation({ type: 'UPDATE_CONTENT', id, data: { imageSrc } as any });
+    };
+
+    const deleteComponent = (id: string) => {
+        setLayout((prev) => prev.filter((c) => c.id !== id));
+        setSelectedId(null);
+        pushMutation({ type: 'DELETE_COMPONENT', id });
+    };
+
+    const moveComponent = (id: string, direction: 'up' | 'down') => {
+        setLayout((prev) => {
+            const index = prev.findIndex((c) => c.id === id);
+            if (index === -1) return prev;
+            const newIndex = direction === 'up' ? index - 1 : index + 1;
+            if (newIndex < 0 || newIndex >= prev.length) return prev;
+            const newLayout = [...prev];
+            [newLayout[index], newLayout[newIndex]] = [newLayout[newIndex], newLayout[index]];
+            return newLayout;
+        });
+    };
+
+    const bringForward = (id: string) => {
+        setLayout((prev) => {
+            const maxZ = Math.max(...prev.map(c => c.styles.zIndex || 1));
+            return prev.map(c => c.id === id ? { ...c, styles: { ...c.styles, zIndex: maxZ + 1 } } : c);
+        });
+    };
+
+    const sendBackward = (id: string) => {
+        setLayout((prev) => {
+            const comp = prev.find(c => c.id === id);
+            const currentZ = comp?.styles.zIndex || 1;
+            return prev.map(c => c.id === id ? { ...c, styles: { ...c.styles, zIndex: Math.max(1, currentZ - 1) } } : c);
+        });
+    };
+
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
 
     if (isLoading) return <div className="h-screen w-full flex items-center justify-center font-mono bg-black text-neutral-600">Loading...</div>;
-
-    const selectedComponent = layout.find((c) => c.id === selectedId) || null;
 
     return (
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
@@ -190,7 +276,11 @@ export function Builder() {
                 {/* Palette */}
                 <aside className={`w-56 bg-neutral-950 border-r border-neutral-900 p-4 flex flex-col transition-all duration-300 ${!canEdit ? 'hidden' : ''}`}>
                     <div className="flex justify-between items-center mb-6">
-                        <div className="w-7 h-7 rounded-lg overflow-hidden border border-neutral-800">
+                        <div
+                            className="w-7 h-7 rounded-lg overflow-hidden border border-neutral-800 cursor-pointer hover:border-neutral-600 transition-colors"
+                            onClick={() => navigate('/')}
+                            title="Back to Home"
+                        >
                             <img src="/InitClub.jpeg" alt="Init Club" className="w-full h-full object-contain" />
                         </div>
 
@@ -202,16 +292,16 @@ export function Builder() {
                     </div>
 
                     <div className="space-y-1 flex-1 overflow-y-auto">
-                        <p className="text-[10px] font-medium text-neutral-600 uppercase tracking-wide mb-2">Elements</p>
+                        <p className="text-[10px] font-medium text-neutral-600 uppercase tracking-wide mb-2">Layout</p>
+                        <PaletteItem type="Navbar" />
+                        <PaletteItem type="Footer" />
                         <PaletteItem type="Section" />
+                        <div className="h-px bg-neutral-900 my-3"></div>
+                        <p className="text-[10px] font-medium text-neutral-600 uppercase tracking-wide mb-2">Elements</p>
                         <PaletteItem type="Text" />
                         <PaletteItem type="Button" />
                         <PaletteItem type="Image" />
-                        <div className="h-px bg-neutral-900 my-3"></div>
-                        <p className="text-[10px] font-medium text-neutral-600 uppercase tracking-wide mb-2">Templates</p>
-                        <PaletteItem type="Hero" />
-                        <PaletteItem type="MemberCard" />
-                        <PaletteItem type="EventCard" />
+                        <PaletteItem type="Card" />
                     </div>
 
                     {user && (
@@ -258,26 +348,42 @@ export function Builder() {
                     )}
 
                     {/* Canvas */}
-                    <main className="flex-1 overflow-y-auto relative bg-black p-6">
-                        <div className="min-h-full flex justify-center">
-                            <Canvas
-                                components={layout}
-                                selectedId={selectedId}
-                                onSelect={setSelectedId}
-                            />
-                        </div>
+                    <main className="flex-1 overflow-y-auto relative bg-black">
+                        <Canvas
+                            components={layout}
+                            selectedId={selectedId}
+                            onSelect={setSelectedId}
+                            onUpdateContent={updateContent}
+                            onUpdateStyles={updateStyles}
+                            onUpdateImageSrc={updateImageSrc}
+                            onDelete={deleteComponent}
+                            onMoveUp={(id) => moveComponent(id, 'up')}
+                            onMoveDown={(id) => moveComponent(id, 'down')}
+                            onBringForward={bringForward}
+                            onSendBackward={sendBackward}
+                            isViewMode={!canEdit}
+                        />
                     </main>
                 </div>
 
-                {/* Inspector */}
-                <aside className="w-72 bg-neutral-950 border-l border-neutral-900">
-                    <Inspector
-                        selectedComponent={selectedComponent}
-                        updateStyles={updateStyles}
-                        updateContent={updateContent}
-                        readOnly={!canEdit}
+                {/* Layer Panel */}
+                {canEdit && (
+                    <LayerPanel
+                        components={layout}
+                        selectedId={selectedId}
+                        onSelect={setSelectedId}
+                        onReorder={(oldIdx, newIdx) => {
+                            // Swap zIndex values
+                            const sorted = [...layout].sort((a, b) => (b.styles.zIndex || 0) - (a.styles.zIndex || 0));
+                            const comp = sorted[oldIdx];
+                            const target = sorted[newIdx];
+                            if (comp && target) {
+                                updateStyles(comp.id, { ...comp.styles, zIndex: target.styles.zIndex });
+                                updateStyles(target.id, { ...target.styles, zIndex: comp.styles.zIndex });
+                            }
+                        }}
                     />
-                </aside>
+                )}
 
                 <ShareModal
                     isOpen={isShareModalOpen}

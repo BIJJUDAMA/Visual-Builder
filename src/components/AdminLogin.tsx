@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useToast } from './Toast';
 
 export function AdminLogin({ onAuthenticated }: { onAuthenticated: () => void }) {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    const { showToast } = useToast();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -13,7 +15,7 @@ export function AdminLogin({ onAuthenticated }: { onAuthenticated: () => void })
 
 
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) alert(error.message);
+        if (error) showToast(error.message, 'error');
         else onAuthenticated();
         setLoading(false);
     };

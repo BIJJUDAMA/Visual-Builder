@@ -1,5 +1,6 @@
 import { Trash2, Lock, ShieldCheck, LogOut } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useModal } from './Modal';
 
 interface Props {
     sessionId: string;
@@ -7,8 +8,18 @@ interface Props {
 }
 
 export function AdminPanel({ sessionId, onClearCanvas }: Props) {
+    const { showConfirm } = useModal();
+
     const handleSignOut = async () => {
         await supabase.auth.signOut();
+    };
+
+    const handleClearCanvas = () => {
+        showConfirm(
+            'This will clear the canvas for EVERYONE. Are you sure?',
+            onClearCanvas,
+            'Reset Canvas'
+        );
     };
 
     return (
@@ -36,11 +47,7 @@ export function AdminPanel({ sessionId, onClearCanvas }: Props) {
 
             <div className="grid grid-cols-1 gap-2">
                 <button
-                    onClick={() => {
-                        if (confirm("This will clear the canvas for EVERYONE. Are you sure?")) {
-                            onClearCanvas();
-                        }
-                    }}
+                    onClick={handleClearCanvas}
                     className="flex items-center justify-center gap-2 w-full p-3 bg-white border border-red-100 text-red-500 rounded-xl text-xs font-bold hover:bg-red-50 transition-all shadow-sm active:scale-95"
                 >
                     <Trash2 size={14} /> Reset Canvas for All

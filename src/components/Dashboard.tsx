@@ -5,6 +5,8 @@ import { Plus, Folder, LogOut, ChevronRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { useToast } from './Toast';
+import { useModal } from './Modal';
 
 interface Session {
     id: string;
@@ -15,6 +17,8 @@ interface Session {
 export function Dashboard() {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
+    const { showToast } = useToast();
+    const { showPrompt } = useModal();
     const [sessions, setSessions] = useState<Session[]>([]);
     const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
@@ -41,26 +45,27 @@ export function Dashboard() {
     const createSession = async () => {
         if (!user) return;
 
-        const name = prompt("Enter a name for your session:", "Untitled Project");
-        if (!name) return;
+        showPrompt('Enter a name for your project:', 'Untitled Project', async (name) => {
+            if (!name) return;
 
-        setCreating(true);
+            setCreating(true);
 
-        const newId = uuidv4();
-        const { error } = await supabase.from('page_sessions').insert({
-            id: newId,
-            owner_id: user.id,
-            name: name,
-            layout: [],
-        });
+            const newId = uuidv4();
+            const { error } = await supabase.from('page_sessions').insert({
+                id: newId,
+                owner_id: user.id,
+                name: name,
+                layout: [],
+            });
 
-        if (error) {
-            console.error('Error creating session:', error);
-            alert('Failed to create session.');
-            setCreating(false);
-        } else {
-            navigate(`/s/${newId}`);
-        }
+            if (error) {
+                console.error('Error creating session:', error);
+                showToast('Failed to create session.', 'error');
+                setCreating(false);
+            } else {
+                navigate(`/s/${newId}`);
+            }
+        }, 'New Project');
     };
 
     return (
@@ -70,7 +75,11 @@ export function Dashboard() {
 
             <header className="relative z-10 border-b border-neutral-900 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg overflow-hidden border border-neutral-800">
+                    <div
+                        className="w-8 h-8 rounded-lg overflow-hidden border border-neutral-800 cursor-pointer hover:border-neutral-600 transition-colors"
+                        onClick={() => navigate('/')}
+                        title="Back to Home"
+                    >
                         <img src="/InitClub.jpeg" alt="Init Club" className="w-full h-full object-contain" />
                     </div>
                     <span className="text-sm font-semibold text-neutral-400">Dashboard</span>

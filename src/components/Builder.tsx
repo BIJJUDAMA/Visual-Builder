@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { DndContext, useSensor, useSensors, PointerSensor, TouchSensor } from '@dnd-kit/core';
+import { DndContext, useSensor, useSensors, TouchSensor, MouseSensor } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { v4 as uuidv4 } from 'uuid';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -295,10 +295,10 @@ export function Builder() {
     };
 
     const sensors = useSensors(
-        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
         useSensor(TouchSensor, {
             activationConstraint: {
-                delay: 250,
+                delay: 150, // Reduced delay for better responsiveness
                 tolerance: 5,
             },
         })

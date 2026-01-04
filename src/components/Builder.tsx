@@ -191,7 +191,7 @@ export function Builder() {
             }
             if (type === 'Footer') {
                 newComponent.styles = { width: '100%', height: '80px', padding: '24px', backgroundColor: '#0a0a0a' };
-                newComponent.content = "© 2024 Init Club. Open source forever.";
+                newComponent.content = "© 2025 Init Club. Open source forever.";
             }
             if (type === 'Section') {
                 newComponent.styles = { width: '100%', height: '300px', backgroundColor: 'rgba(255,255,255,0.03)' };

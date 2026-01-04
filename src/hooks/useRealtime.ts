@@ -22,7 +22,17 @@ export function useRealtime(
                     onRemoteMutation(payload.new.payload);
                 }
             )
-            .subscribe();
+            .subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    console.log(`✅ Connected to session ${sessionId}`);
+                }
+                if (status === 'CHANNEL_ERROR') {
+                    console.error(`❌ Failed to connect to session ${sessionId}`);
+                }
+                if (status === 'TIMED_OUT') {
+                    console.error(`⚠️ Connection timed out for session ${sessionId}`);
+                }
+            });
 
         return () => {
             supabase.removeChannel(channel);

@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
-import { DndContext, useSensor, useSensors, PointerSensor } from '@dnd-kit/core';
+import { DndContext, useSensor, useSensors, PointerSensor, TouchSensor } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
 import { v4 as uuidv4 } from 'uuid';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Share2, LogOut, Eye, Edit2, Trash2, ChevronLeft } from 'lucide-react';
+import { Share2, LogOut, Eye, Edit2, Trash2, ChevronLeft, Menu, Layers } from 'lucide-react';
 import { PaletteItem } from './PaletteItem';
 import { Canvas } from './Canvas';
 import { ShareModal } from './ShareModal';
@@ -32,6 +32,8 @@ export function Builder() {
     const [isLoading, setIsLoading] = useState(true);
     const [isShareModalOpen, setIsShareModalOpen] = useState(false);
     const [canEdit, setCanEdit] = useState(true);
+    const [isLeftSidebarOpen, setIsLeftSidebarOpen] = useState(false);
+    const [isRightSidebarOpen, setIsRightSidebarOpen] = useState(false);
 
 
     useEffect(() => {
@@ -102,6 +104,24 @@ export function Builder() {
         }
         loadInitialState();
     }, [sessionId]);
+
+    // Auto-save persistence: Update page_sessions table so that refresh/reload works
+    useEffect(() => {
+        if (isLoading || !sessionId || !user) return;
+
+        const timer = setTimeout(async () => {
+            try {
+                await supabase
+                    .from('page_sessions')
+                    .update({ layout } as any) // Cast any if type mismatch on layout JSON
+                    .eq('id', sessionId);
+            } catch (err) {
+                console.error("Auto-save failed", err);
+            }
+        }, 1000); // 1 second debounce
+
+        return () => clearTimeout(timer);
+    }, [layout, sessionId, isLoading, user]);
 
     // Handle remote mutations
     const applyRemoteMutation = useCallback((payload: MutationPayload) => {
@@ -265,7 +285,15 @@ export function Builder() {
         });
     };
 
-    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+    const sensors = useSensors(
+        useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+        useSensor(TouchSensor, {
+            activationConstraint: {
+                delay: 250,
+                tolerance: 5,
+            },
+        })
+    );
 
     if (isLoading) return <div className="h-screen w-full flex items-center justify-center font-mono bg-black text-neutral-600">Loading...</div>;
 
@@ -273,8 +301,16 @@ export function Builder() {
         <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
             <div className="flex h-screen w-full bg-black overflow-hidden">
 
-                {/* Palette */}
-                <aside className={`w-56 bg-neutral-950 border-r border-neutral-900 p-4 flex flex-col transition-all duration-300 ${!canEdit ? 'hidden' : ''}`}>
+                {/* Palette - Hidden on mobile unless toggled, Visible on Desktop */}
+                {/* Mobile Overlay for Left Sidebar */}
+                {isLeftSidebarOpen && (
+                    <div
+                        className="fixed inset-0 bg-black/50 z-30 md:hidden"
+                        onClick={() => setIsLeftSidebarOpen(false)}
+                    />
+                )}
+
+                <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-neutral-950 border-r border-neutral-900 p-4 flex flex-col transition-transform duration-300 md:relative md:translate-x-0 ${!canEdit ? 'hidden' : ''} ${isLeftSidebarOpen ? 'translate-x-0' : 'max-md:-translate-x-full'}`}>
                     <div className="flex justify-between items-center mb-6">
                         <div
                             className="w-7 h-7 rounded-lg overflow-hidden border border-neutral-800 cursor-pointer hover:border-neutral-600 transition-colors"
@@ -326,7 +362,7 @@ export function Builder() {
                                     onClick={() => navigate('/dashboard')}
                                     className="flex items-center gap-1.5 text-xs text-neutral-500 hover:text-white transition-colors"
                                 >
-                                    <ChevronLeft size={14} /> Back
+                                    <ChevronLeft size={14} /> <span className="hidden sm:inline">Back</span>
                                 </button>
                             </div>
                             <div className="flex items-center gap-2">
@@ -341,7 +377,7 @@ export function Builder() {
                                     onClick={terminateSession}
                                     className="flex items-center gap-1.5 px-3 py-1.5 text-red-400 hover:bg-red-900/20 rounded-lg text-xs font-medium transition-all"
                                 >
-                                    <Trash2 size={12} /> Delete
+                                    <Trash2 size={12} /> <span className="hidden sm:inline">Delete</span>
                                 </button>
                             </div>
                         </div>
@@ -364,33 +400,67 @@ export function Builder() {
                             isViewMode={!canEdit}
                         />
                     </main>
+
+                    {/* Mobile Bottom Navigation */}
+                    {canEdit && (
+                        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-neutral-950 border-t border-neutral-800 flex items-center justify-around p-3 z-50 safe-area-bottom">
+                            <button
+                                onClick={() => {
+                                    setIsLeftSidebarOpen(!isLeftSidebarOpen);
+                                    setIsRightSidebarOpen(false);
+                                }}
+                                className={`flex flex-col items-center gap-1 text-[10px] font-medium transition-colors ${isLeftSidebarOpen ? 'text-white' : 'text-neutral-500'}`}
+                            >
+                                <Menu size={20} />
+                                Elements
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setIsRightSidebarOpen(!isRightSidebarOpen);
+                                    setIsLeftSidebarOpen(false);
+                                }}
+                                className={`flex flex-col items-center gap-1 text-[10px] font-medium transition-colors ${isRightSidebarOpen ? 'text-white' : 'text-neutral-500'}`}
+                            >
+                                <Layers size={20} />
+                                Layers
+                            </button>
+                        </div>
+                    )}
                 </div>
 
-                {/* Layer Panel */}
-                {canEdit && (
-                    <LayerPanel
-                        components={layout}
-                        selectedId={selectedId}
-                        onSelect={setSelectedId}
-                        onReorder={(oldIdx, newIdx) => {
-                            // Swap zIndex values
-                            const sorted = [...layout].sort((a, b) => (b.styles.zIndex || 0) - (a.styles.zIndex || 0));
-                            const comp = sorted[oldIdx];
-                            const target = sorted[newIdx];
-                            if (comp && target) {
-                                updateStyles(comp.id, { ...comp.styles, zIndex: target.styles.zIndex });
-                                updateStyles(target.id, { ...target.styles, zIndex: comp.styles.zIndex });
-                            }
-                        }}
+                {/* Layer Panel - Hidden on mobile, Drawer on Desktop */}
+                {/* Mobile Overlay for Right Sidebar */}
+                {isRightSidebarOpen && (
+                    <div
+                        className="fixed inset-0 bg-black/50 z-30 md:hidden"
+                        onClick={() => setIsRightSidebarOpen(false)}
                     />
                 )}
 
-                <ShareModal
-                    isOpen={isShareModalOpen}
-                    onClose={() => setIsShareModalOpen(false)}
-                    sessionId={sessionId || ''}
-                />
-
+                {canEdit && (
+                    <div className={`fixed inset-y-0 right-0 z-40 w-64 bg-neutral-950 border-l border-neutral-900 transition-transform duration-300 md:relative md:translate-x-0 ${isRightSidebarOpen ? 'translate-x-0' : 'max-md:translate-x-full'}`}>
+                        <LayerPanel
+                            components={layout}
+                            selectedId={selectedId}
+                            onSelect={setSelectedId}
+                            onReorder={(oldIdx, newIdx) => {
+                                // Swap zIndex values
+                                const sorted = [...layout].sort((a, b) => (b.styles.zIndex || 0) - (a.styles.zIndex || 0));
+                                const comp = sorted[oldIdx];
+                                const target = sorted[newIdx];
+                                if (comp && target) {
+                                    updateStyles(comp.id, { ...comp.styles, zIndex: target.styles.zIndex });
+                                    updateStyles(target.id, { ...target.styles, zIndex: comp.styles.zIndex });
+                                }
+                            }}
+                        />
+                        <ShareModal
+                            isOpen={isShareModalOpen}
+                            onClose={() => setIsShareModalOpen(false)}
+                            sessionId={sessionId || ''}
+                        />
+                    </div>
+                )}
             </div>
         </DndContext>
     );

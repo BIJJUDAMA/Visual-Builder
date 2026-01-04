@@ -42,6 +42,13 @@ export function Canvas({
 
     // Handle drag start
     const handlePointerDown = (e: React.PointerEvent, comp: UIComponent) => {
+        // Ignore inputs/text areas to allow editing
+        const target = e.target as HTMLElement;
+        if (['INPUT', 'TEXTAREA', 'BUTTON'].includes(target.tagName) || target.isContentEditable) {
+            onSelect(comp.id);
+            return;
+        }
+
         if (e.button !== 0) return;
         e.preventDefault();
         e.stopPropagation();

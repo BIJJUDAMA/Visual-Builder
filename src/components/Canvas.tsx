@@ -44,13 +44,17 @@ export function Canvas({
     const handlePointerDown = (e: React.PointerEvent, comp: UIComponent) => {
         // Ignore inputs/text areas to allow editing
         const target = e.target as HTMLElement;
-        if (['INPUT', 'TEXTAREA', 'BUTTON'].includes(target.tagName) || target.isContentEditable) {
+        const isEditable = ['INPUT', 'TEXTAREA', 'BUTTON'].includes(target.tagName)
+            || target.isContentEditable
+            || target.classList.contains('cursor-text');
+
+        if (isEditable) {
             onSelect(comp.id);
             return;
         }
 
         if (e.button !== 0) return;
-        e.preventDefault();
+        // Don't prevent default to allow clicks to propagate for editing
         e.stopPropagation();
         e.currentTarget.setPointerCapture(e.pointerId);
         setDragging(comp.id);
@@ -146,7 +150,7 @@ export function Canvas({
                 <div
                     className={`cursor-move w-full h-full ${isSelected ? 'ring-2 ring-white ring-offset-2 ring-offset-black' : ''}`}
                     onPointerDown={(e) => handlePointerDown(e, comp)}
-                    style={{ touchAction: 'none' }}
+                    style={{ touchAction: 'none', userSelect: 'none' }}
                 >
                     {isSelected && selectedComponent && (
                         <FloatingToolbar

@@ -5,6 +5,7 @@ export type MutationType =
     | 'ADD_COMPONENT'
     | 'UPDATE_STYLE'
     | 'UPDATE_CONTENT'
+    | 'UPDATE_IMAGE'
     | 'DELETE_COMPONENT'
     | 'RESET_LAYOUT'
     | 'TERMINATE_SESSION';

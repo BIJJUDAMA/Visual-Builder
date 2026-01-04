@@ -142,7 +142,11 @@ export function Builder() {
                     );
                 case 'UPDATE_CONTENT':
                     return prev.map((c) =>
-                        c.id === payload.id ? { ...c, content: payload.data } : c
+                        c.id === payload.id ? { ...c, content: typeof payload.data === 'string' ? payload.data : c.content } : c
+                    );
+                case 'UPDATE_IMAGE':
+                    return prev.map((c) =>
+                        c.id === payload.id ? { ...c, imageSrc: payload.data.imageSrc } : c
                     );
                 case 'DELETE_COMPONENT':
                     return prev.filter((c) => c.id !== payload.id);
@@ -254,7 +258,7 @@ export function Builder() {
         setLayout((prev) =>
             prev.map((c) => (c.id === id ? { ...c, imageSrc } : c))
         );
-        pushMutation({ type: 'UPDATE_CONTENT', id, data: { imageSrc } as any });
+        pushMutation({ type: 'UPDATE_IMAGE' as any, id, data: { imageSrc } }); // Use custom type
     };
 
     const deleteComponent = (id: string) => {

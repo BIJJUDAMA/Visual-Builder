@@ -27,6 +27,7 @@ export function Builder() {
     const { showToast } = useToast();
     const { showConfirm } = useModal();
 
+    const [sessionName, setSessionName] = useState('Untitled Project');
     const [layout, setLayout] = useState<UIComponent[]>([]);
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -91,17 +92,21 @@ export function Builder() {
             try {
                 const { data } = await supabase
                     .from('page_sessions')
-                    .select('layout')
+                    .select('layout, name')
                     .eq('id', sessionId)
                     .single();
 
-                if (data) setLayout(data.layout || []);
+                if (data) {
+                    setLayout(data.layout || []);
+                    setSessionName(data.name || 'Untitled Project');
+                }
             } catch (err) {
                 console.error("Failed to load session", err);
             } finally {
                 setIsLoading(false);
             }
         }
+
         loadInitialState();
     }, [sessionId]);
 
@@ -364,6 +369,9 @@ export function Builder() {
                                 >
                                     <ChevronLeft size={14} /> <span className="hidden sm:inline">Back</span>
                                 </button>
+                                <span className="text-sm font-semibold text-neutral-300 ml-2 hidden md:inline-block border-l border-neutral-800 pl-4 h-4 leading-4">
+                                    {sessionName}
+                                </span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <button

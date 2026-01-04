@@ -160,7 +160,7 @@ export function RenderNode({ component, isSelected, onClick, onUpdateContent, on
                             className="w-full h-full object-cover rounded-lg"
                             style={{ minHeight: '100px' }}
                         />
-                        {isSelected && (
+                        {isSelected && !isViewMode && (
                             <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity p-4">
                                 <p className="text-neutral-400 text-xs mb-2">Change image:</p>
                                 <div className="flex gap-2 flex-wrap justify-center">
@@ -178,24 +178,30 @@ export function RenderNode({ component, isSelected, onClick, onUpdateContent, on
                         )}
                     </div>
                 ) : (
-                    <div
-                        className="w-full bg-neutral-900 flex flex-col items-center justify-center border border-dashed border-neutral-800 text-neutral-600 rounded-lg p-4"
-                        style={{ minHeight: component.styles.height || '200px' }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <p className="text-xs text-neutral-500 mb-3">Choose an image:</p>
-                        <div className="flex gap-2 flex-wrap justify-center">
-                            {[1, 2, 3].map((n) => (
-                                <button
-                                    key={n}
-                                    onClick={(e) => { e.stopPropagation(); onUpdateImageSrc?.(component.id, `/${n}.png`); }}
-                                    className="w-12 h-12 rounded-lg overflow-hidden border-2 border-neutral-700 hover:border-white transition-colors"
-                                >
-                                    <img src={`/${n}.png`} alt={`Image ${n}`} className="w-full h-full object-cover" />
-                                </button>
-                            ))}
+                    isViewMode ? (
+                        <div className="w-full h-full bg-neutral-900/50 rounded-lg flex items-center justify-center border border-neutral-800" style={{ minHeight: component.styles.height || '200px' }}>
+                            <span className="text-neutral-700 text-xs">No Image</span>
                         </div>
-                    </div>
+                    ) : (
+                        <div
+                            className="w-full bg-neutral-900 flex flex-col items-center justify-center border border-dashed border-neutral-800 text-neutral-600 rounded-lg p-4"
+                            style={{ minHeight: component.styles.height || '200px' }}
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <p className="text-xs text-neutral-500 mb-3">Choose an image:</p>
+                            <div className="flex gap-2 flex-wrap justify-center">
+                                {[1, 2, 3].map((n) => (
+                                    <button
+                                        key={n}
+                                        onClick={(e) => { e.stopPropagation(); onUpdateImageSrc?.(component.id, `/${n}.png`); }}
+                                        className="w-12 h-12 rounded-lg overflow-hidden border-2 border-neutral-700 hover:border-white transition-colors"
+                                    >
+                                        <img src={`/${n}.png`} alt={`Image ${n}`} className="w-full h-full object-cover" />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )
                 )
             )}
 

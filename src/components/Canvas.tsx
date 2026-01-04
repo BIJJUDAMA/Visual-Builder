@@ -41,10 +41,11 @@ export function Canvas({
     const selectedComponent = components.find(c => c.id === selectedId);
 
     // Handle drag start
-    const handleMouseDown = (e: React.MouseEvent, comp: UIComponent) => {
+    const handlePointerDown = (e: React.PointerEvent, comp: UIComponent) => {
         if (e.button !== 0) return;
         e.preventDefault();
         e.stopPropagation();
+        e.currentTarget.setPointerCapture(e.pointerId);
         setDragging(comp.id);
         onSelect(comp.id);
         setDragStart({
@@ -56,7 +57,7 @@ export function Canvas({
     };
 
     // Handle drag move
-    const handleMouseMove = (e: React.MouseEvent) => {
+    const handlePointerMove = (e: React.PointerEvent) => {
         if (!dragging || !dragStart) return;
         const dx = e.clientX - dragStart.x;
         const dy = e.clientY - dragStart.y;
@@ -67,7 +68,7 @@ export function Canvas({
 
     // Handle drag end with snap-to-grid
     const GRID_SIZE = 20;
-    const handleMouseUp = () => {
+    const handlePointerUp = () => {
         if (dragging) {
             // Snap to grid on release
             const comp = components.find(c => c.id === dragging);
@@ -84,13 +85,14 @@ export function Canvas({
     // Resize state
     const [resizing, setResizing] = useState<{ id: string; handle: string; startX: number; startY: number; startW: number; startH: number } | null>(null);
 
-    const startResize = (e: React.MouseEvent, compId: string, handle: string, w: number, h: number) => {
+    const startResize = (e: React.PointerEvent, compId: string, handle: string, w: number, h: number) => {
         e.stopPropagation();
         e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
         setResizing({ id: compId, handle, startX: e.clientX, startY: e.clientY, startW: w, startH: h });
     };
 
-    const handleResizeMove = (e: React.MouseEvent) => {
+    const handleResizeMove = (e: React.PointerEvent) => {
         if (!resizing) return;
         const dx = e.clientX - resizing.startX;
         const dy = e.clientY - resizing.startY;
@@ -136,7 +138,8 @@ export function Canvas({
                 {/* Drag handle area */}
                 <div
                     className={`cursor-move w-full h-full ${isSelected ? 'ring-2 ring-white ring-offset-2 ring-offset-black' : ''}`}
-                    onMouseDown={(e) => handleMouseDown(e, comp)}
+                    onPointerDown={(e) => handlePointerDown(e, comp)}
+                    style={{ touchAction: 'none' }}
                 >
                     {isSelected && selectedComponent && (
                         <FloatingToolbar
@@ -164,23 +167,24 @@ export function Canvas({
                 {isSelected && !isDragging && (
                     <>
                         {/* Corners */}
+                        {/* Corners */}
                         <div className="absolute -top-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-neutral-900 rounded-sm cursor-nwse-resize z-50"
-                            onMouseDown={(e) => startResize(e, comp.id, 'nw', width, height)} />
+                            onPointerDown={(e) => startResize(e, comp.id, 'nw', width, height)} style={{ touchAction: 'none' }} />
                         <div className="absolute -top-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-neutral-900 rounded-sm cursor-nesw-resize z-50"
-                            onMouseDown={(e) => startResize(e, comp.id, 'ne', width, height)} />
+                            onPointerDown={(e) => startResize(e, comp.id, 'ne', width, height)} style={{ touchAction: 'none' }} />
                         <div className="absolute -bottom-1.5 -left-1.5 w-3 h-3 bg-white border-2 border-neutral-900 rounded-sm cursor-nesw-resize z-50"
-                            onMouseDown={(e) => startResize(e, comp.id, 'sw', width, height)} />
+                            onPointerDown={(e) => startResize(e, comp.id, 'sw', width, height)} style={{ touchAction: 'none' }} />
                         <div className="absolute -bottom-1.5 -right-1.5 w-3 h-3 bg-white border-2 border-neutral-900 rounded-sm cursor-nwse-resize z-50"
-                            onMouseDown={(e) => startResize(e, comp.id, 'se', width, height)} />
+                            onPointerDown={(e) => startResize(e, comp.id, 'se', width, height)} style={{ touchAction: 'none' }} />
                         {/* Edges */}
                         <div className="absolute -top-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-2 border-neutral-900 rounded-sm cursor-ns-resize z-50"
-                            onMouseDown={(e) => startResize(e, comp.id, 'n', width, height)} />
+                            onPointerDown={(e) => startResize(e, comp.id, 'n', width, height)} style={{ touchAction: 'none' }} />
                         <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-white border-2 border-neutral-900 rounded-sm cursor-ns-resize z-50"
-                            onMouseDown={(e) => startResize(e, comp.id, 's', width, height)} />
+                            onPointerDown={(e) => startResize(e, comp.id, 's', width, height)} style={{ touchAction: 'none' }} />
                         <div className="absolute top-1/2 -left-1.5 -translate-y-1/2 w-3 h-3 bg-white border-2 border-neutral-900 rounded-sm cursor-ew-resize z-50"
-                            onMouseDown={(e) => startResize(e, comp.id, 'w', width, height)} />
+                            onPointerDown={(e) => startResize(e, comp.id, 'w', width, height)} style={{ touchAction: 'none' }} />
                         <div className="absolute top-1/2 -right-1.5 -translate-y-1/2 w-3 h-3 bg-white border-2 border-neutral-900 rounded-sm cursor-ew-resize z-50"
-                            onMouseDown={(e) => startResize(e, comp.id, 'e', width, height)} />
+                            onPointerDown={(e) => startResize(e, comp.id, 'e', width, height)} style={{ touchAction: 'none' }} />
 
                         {/* Dimension indicator while resizing */}
                         {isResizing && (
@@ -210,9 +214,9 @@ export function Canvas({
             <div
                 ref={canvasRef}
                 className="w-full max-w-4xl min-h-[600px] md:min-h-[800px] bg-neutral-950 rounded-lg ring-1 ring-neutral-900 transition-all overflow-hidden"
-                onMouseMove={(e) => { handleMouseMove(e); handleResizeMove(e); }}
-                onMouseUp={() => { handleMouseUp(); handleResizeEnd(); }}
-                onMouseLeave={() => { handleMouseUp(); handleResizeEnd(); }}
+                onPointerMove={(e) => { handlePointerMove(e); handleResizeMove(e); }}
+                onPointerUp={() => { handlePointerUp(); handleResizeEnd(); }}
+                onPointerLeave={() => { handlePointerUp(); handleResizeEnd(); }}
             >
                 {/* Navbar - Stacked at top, edge to edge */}
                 {navbar && (

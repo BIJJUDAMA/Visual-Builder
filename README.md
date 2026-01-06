@@ -1,6 +1,6 @@
 # Visual Builder
 
-A simple visual page builder application built as a mini game for Init Club's Stall at Anonkha 2026. Idea is to allow users to design their own website
+A fun, interactive way to build websites, created for the **Init Club** stall at **Anokha 2026**. Turning web design into a mini-game where anyone can jump in and design their own unique page in minutes.
 
 
 ## Features
